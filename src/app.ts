@@ -42,10 +42,11 @@ app.get('/health', (_req: Request, res: Response) => {
 // Routes
 import authRoutes from './modules/auth/auth.routes';
 import barbershopRoutes from './modules/barbershops/barbershop.routes';
+import barberRoutes from './modules/barbers/barber.routes';
 
 app.use('/auth', authRoutes);
 app.use('/barbershops', barbershopRoutes);
-// app.use('/barbers', barberRoutes);
+app.use('/barbers', barberRoutes);
 // app.use('/services', serviceRoutes);
 // app.use('/appointments', appointmentRoutes);
 // app.use('/customers', customerRoutes);
