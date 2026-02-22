@@ -1,0 +1,52 @@
+import mongoose, { Schema, Document, Types } from 'mongoose';
+
+export interface IBarbershop extends Document {
+  name: string;
+  slug: string;
+  planId?: Types.ObjectId;
+  maxBarbers: number;
+  active: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const BarbershopSchema = new Schema<IBarbershop>(
+  {
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    slug: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+      index: true,
+    },
+    planId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Plan',
+    },
+    maxBarbers: {
+      type: Number,
+      required: true,
+      min: 1,
+      default: 1,
+    },
+    active: {
+      type: Boolean,
+      default: true,
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
+
+// Index for slug (already defined above, but explicit for clarity)
+BarbershopSchema.index({ slug: 1 }, { unique: true });
+
+export const Barbershop = mongoose.model<IBarbershop>('Barbershop', BarbershopSchema);
+

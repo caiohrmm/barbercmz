@@ -1,0 +1,238 @@
+---
+alwaysApply: true
+description: Especificação completa do projeto BarberCMZ Backend
+---
+
+# BarberCMZ Backend - Especificação do Projeto
+
+## Visão Geral
+
+SaaS multi-tenant de agendamento para barbearias. Backend seguro, escalável e preparado para crescimento regional. Deve seguir boas práticas de arquitetura, segurança e organização de código.
+
+## Stack Tecnológica
+
+- **Runtime**: Node.js (v20+)
+- **Framework**: Express.js
+- **Database**: MongoDB Atlas
+- **ORM**: Mongoose
+- **Authentication**: JWT (Access + Refresh Token)
+- **Password Hash**: bcrypt
+- **Validation**: Zod
+- **Rate Limit**: express-rate-limit
+- **Security**: Helmet + CORS configurado corretamente
+- **Logging**: Pino
+- **Process Manager**: PM2 (produção)
+
+## Arquitetura
+
+### Padrão
+Modular + Clean Architecture
+
+### Multi-Tenant
+- **Estratégia**: Todas as entidades devem possuir `barbershopId`
+- **Regra Crítica**: Nenhuma query pode retornar dados sem filtrar por `barbershopId`
+- **Middleware**: Implementar middleware que valide `barbershopId` no token
+
+### Estrutura de Pastas
+```
+src/
+  - modules/
+    - auth/
+    - barbershops/
+    - users/
+    - barbers/
+    - services/
+    - appointments/
+    - customers/
+    - plans/
+  - middlewares/
+  - utils/
+  - config/
+  - app.ts
+  - server.ts
+```
+
+## Requisitos de Segurança
+
+1. **Helmet**: Usar para headers de segurança
+2. **CORS**: Configurar apenas para domínios permitidos
+3. **Rate Limit**: 
+   - Global
+   - Por rota sensível (especialmente criação de appointments)
+4. **Validação**: Todos os inputs com Zod
+5. **Princípio**: Nunca confiar em dados do frontend
+6. **Senhas**: Hash com bcrypt (salt >= 10)
+7. **JWT Access Token**: Expira em 15 minutos
+8. **Refresh Token**: 
+   - Armazenado em cookie httpOnly
+   - Secure
+   - SameSite=strict
+9. **Autorização**: 
+   - Verificação de role (owner, barber)
+   - Middleware que valide barbershopId no token
+10. **Índices MongoDB**: Criar índices para performance e segurança
+
+## Roles
+
+- `owner`: Proprietário da barbearia
+- `barber`: Barbeiro da barbearia
+
+## Entidades Principais
+
+### Barbershop
+- `name`: string
+- `slug`: string (único)
+- `plan`: referencia ao plano
+- `maxBarbers`: number
+- `active`: boolean
+
+### User
+- `name`: string
+- `email`: string (único)
+- `passwordHash`: string
+- `role`: 'owner' | 'barber'
+- `barbershopId`: ObjectId
+- `active`: boolean
+
+### Barber
+- `name`: string
+- `workingHours`: object/array
+- `barbershopId`: ObjectId
+- `active`: boolean
+
+### Service
+- `name`: string
+- `duration`: number (em minutos)
+- `price`: number
+- `barbershopId`: ObjectId
+- `active`: boolean
+
+### Customer
+- `name`: string
+- `phone`: string
+- `noShowCount`: number (default 0)
+- `blocked`: boolean (default false)
+- `barbershopId`: ObjectId
+
+### Appointment
+- `barbershopId`: ObjectId
+- `barberId`: ObjectId
+- `serviceId`: ObjectId
+- `customerId`: ObjectId
+- `startTime`: Date
+- `endTime`: Date
+- `status`: 'scheduled' | 'completed' | 'cancelled' | 'no_show'
+
+## Regras de Negócio
+
+1. **Bloqueio de Cliente**: Impedir agendamento se `customer.blocked = true`
+2. **Limite de Agendamentos**: Impedir mais de 2 agendamentos ativos por cliente
+3. **Conflito de Horário**: Verificar conflito de horário antes de criar appointment
+4. **Limite de Barbeiros**: Respeitar limite de barbeiros baseado no plano
+5. **Isolamento de Dados**: Impedir que barbeiro acesse dados de outra barbearia
+6. **Limite de Usuários**: Impedir criação de usuário além do limite do plano
+7. **Bloqueio Automático**: Bloquear cliente automaticamente se `noShowCount >= 2`
+
+## Índices MongoDB
+
+- **appointments**: `[barbershopId, barberId, startTime]`
+- **customers**: `[barbershopId, phone]`
+- **users**: `[email]`
+- **barbershops**: `[slug]`
+
+## Rotas da API
+
+### Auth
+- `POST /auth/login`
+- `POST /auth/refresh`
+- `POST /auth/logout`
+
+### Barbershops
+- `POST /barbershops`
+- `GET /barbershops/:id`
+
+### Barbers
+- `POST /barbers`
+- `GET /barbers`
+- `PATCH /barbers/:id`
+- `DELETE /barbers/:id`
+
+### Services
+- `POST /services`
+- `GET /services`
+- `PATCH /services/:id`
+- `DELETE /services/:id`
+
+### Appointments
+- `POST /appointments` (rota pública para cliente)
+- `GET /appointments`
+- `PATCH /appointments/:id/status`
+
+### Customers
+- `GET /customers`
+- `PATCH /customers/:id/block`
+
+## Anti-Abuse
+
+1. **Rate Limit**: Na rota de criação de appointment
+2. **Validação de Telefone**: Validar telefone com regex
+3. **Preparação SMS**: Estrutura futura para verificação via SMS
+4. **Bloqueio Automático**: Cliente bloqueado se `noShowCount >= 2`
+
+## Preparação para o Futuro
+
+- Estrutura preparada para integração com SMS
+- Estrutura preparada para planos pagos (Stripe)
+- Estrutura preparada para WhatsApp Business API oficial
+
+## Módulo de Planos
+
+### Plan
+Modelo base de plano do sistema
+- `name`: string (ex: SOLO, DUO, PRO, ELITE)
+- `priceMonthly`: number
+- `maxBarbers`: number
+- `features`: array
+- `active`: boolean
+
+### Subscription
+Assinatura ativa da barbearia
+- `barbershopId`: ObjectId
+- `planId`: ObjectId
+- `status`: 'active' | 'suspended' | 'cancelled' | 'trial'
+- `currentPeriodStart`: Date
+- `currentPeriodEnd`: Date
+- `trialEndsAt`: Date (nullable)
+- `externalSubscriptionId`: string (para Stripe futuro)
+
+### Payment
+Histórico de pagamentos
+- `barbershopId`: ObjectId
+- `subscriptionId`: ObjectId
+- `amount`: number
+- `currency`: string
+- `status`: 'paid' | 'pending' | 'failed' | 'refunded'
+- `paymentMethod`: 'pix' | 'card' | 'boleto'
+- `externalPaymentId`: string
+- `paidAt`: Date
+
+## Requisitos Não-Funcionais
+
+1. **TypeScript**: Código tipado
+2. **Separação de Responsabilidades**: Controllers, Services e Repositories claramente separados
+3. **Tratamento de Erros**: Tratamento global de erros
+4. **Logs**: Logs estruturados com Pino
+5. **Variáveis de Ambiente**: `.env` validado com Zod
+6. **Deploy**: Sistema pronto para deploy em VPS Linux
+
+## Objetivo
+
+Desenvolver um backend simples, seguro e escalável, preparado para suportar 100+ barbearias sem reestruturação futura.
+
+## Princípios Importantes
+
+1. **Multi-Tenancy**: Sempre filtrar por `barbershopId` em todas as queries
+2. **Segurança First**: Validar tudo, nunca confiar no frontend
+3. **Escalabilidade**: Código modular e bem organizado
+4. **Type Safety**: Usar TypeScript em todo o código
+5. **Clean Code**: Seguir Clean Architecture e separação de responsabilidades
