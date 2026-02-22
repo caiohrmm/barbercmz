@@ -1,17 +1,42 @@
 # BarberCMZ Backend
 
-SaaS multi-tenant de agendamento para barbearias. Backend seguro, escalável e preparado para crescimento regional.
+Backend de um sistema SaaS multi-tenant de agendamento para barbearias. Desenvolvido com foco em segurança, escalabilidade e boas práticas de arquitetura.
 
-## 🚀 Tecnologias
+## 📖 Sobre o Projeto
 
-- Node.js (v20+)
-- Express.js
-- TypeScript
-- MongoDB Atlas (Mongoose)
-- JWT (Access + Refresh Token)
-- Zod (Validação)
-- Pino (Logging)
-- Helmet + CORS (Segurança)
+Este é um **projeto de estudo** desenvolvido com o objetivo de expandir o portfólio e demonstrar habilidades em desenvolvimento backend com Node.js, TypeScript e arquitetura de software.
+
+O projeto foi construído seguindo princípios de **Clean Architecture** e **Multi-Tenancy**, preparado para escalar e suportar múltiplas barbearias de forma isolada e segura.
+
+### 🎯 Objetivo Futuro
+
+Embora seja inicialmente um projeto de estudo, o **BarberCMZ** foi projetado com a visão de se tornar um **SaaS real** para atender barbearias da região, oferecendo uma solução completa de gestão de agendamentos, clientes e serviços.
+
+A arquitetura foi pensada para suportar crescimento gradual, desde algumas barbearias até centenas, sem necessidade de reestruturação significativa.
+
+## 🚀 Stack Tecnológica
+
+### Core
+- **Node.js** (v20+) - Runtime JavaScript
+- **Express.js** - Framework web
+- **TypeScript** - Tipagem estática
+- **MongoDB Atlas** - Banco de dados NoSQL
+- **Mongoose** - ODM para MongoDB
+
+### Segurança & Autenticação
+- **JWT** - Access Token (15min) + Refresh Token (7d)
+- **bcrypt** - Hash de senhas (salt 10)
+- **Helmet** - Headers de segurança
+- **CORS** - Configuração de origens permitidas
+- **express-rate-limit** - Proteção contra abuso
+
+### Validação & Logging
+- **Zod** - Validação de schemas
+- **Pino** - Logging estruturado
+- **pino-http** - Middleware de logging HTTP
+
+### Process Manager
+- **PM2** - Gerenciamento de processos (produção)
 
 ## 📦 Instalação
 
@@ -78,64 +103,128 @@ src/
 
 ## 🔐 Segurança
 
-- Helmet para headers de segurança
-- CORS configurado para domínios permitidos
-- Rate limiting global e por rota
-- Validação de inputs com Zod
-- JWT com Access Token (15min) e Refresh Token (7d)
-- Hash de senha com bcrypt (salt >= 10)
-- Middleware de autenticação e autorização
-- Isolamento multi-tenant (barbershopId)
+### Implementações de Segurança
+- ✅ **Helmet** - Headers de segurança HTTP
+- ✅ **CORS** - Configuração restrita de origens permitidas
+- ✅ **Rate Limiting** - Global (100 req/15min) e específico para appointments (5 req/15min)
+- ✅ **Validação Zod** - Todos os inputs validados antes do processamento
+- ✅ **JWT** - Access Token (15min) + Refresh Token em cookie httpOnly (7d)
+- ✅ **bcrypt** - Hash de senhas com salt 10
+- ✅ **Autenticação** - Middleware obrigatório em rotas protegidas
+- ✅ **Autorização** - Controle de acesso por roles (owner/barber)
+- ✅ **Multi-Tenancy** - Isolamento completo de dados por barbearia
+
+### Princípios Aplicados
+- **Nunca confiar em dados do frontend** - Toda validação no backend
+- **Defesa em profundidade** - Múltiplas camadas de segurança
+- **Princípio do menor privilégio** - Acesso apenas ao necessário
 
 ## 🏗️ Arquitetura
 
-- **Padrão**: Modular + Clean Architecture
-- **Multi-Tenant**: Todas as entidades possuem `barbershopId`
-- **Separação**: Controllers, Services e Repositories
+### Padrão de Design
+- **Modular + Clean Architecture**: Separação clara de responsabilidades
+- **Multi-Tenant**: Isolamento completo de dados por barbearia
+- **Separação de Camadas**: Controllers → Services → Models
+
+### Multi-Tenancy
+O sistema implementa isolamento completo de dados através do `barbershopId`:
+- Todas as entidades possuem `barbershopId`
+- Nenhuma query retorna dados sem filtrar por `barbershopId`
+- Middleware valida `barbershopId` no token JWT
+- Impossível acessar dados de outra barbearia
+
+### Estrutura Modular
+Cada módulo segue o padrão:
+- `*.schemas.ts` - Validação com Zod
+- `*.service.ts` - Lógica de negócio
+- `*.controller.ts` - Controllers HTTP
+- `*.routes.ts` - Definição de rotas
+- `*.model.ts` - Modelos Mongoose
 
 ## 📝 API Routes
 
-### Auth
-- `POST /auth/login`
-- `POST /auth/refresh`
-- `POST /auth/logout`
+### 🔐 Autenticação
+- `POST /auth/login` - Login de usuário
+- `POST /auth/refresh` - Renovar access token
+- `POST /auth/logout` - Logout
 
-### Barbershops
-- `POST /barbershops`
-- `GET /barbershops/:id`
+### 🏪 Barbearias
+- `POST /barbershops` - Criar nova barbearia (cria owner automaticamente)
+- `GET /barbershops/:id` - Buscar barbearia por ID
 
-### Barbers
-- `POST /barbers`
-- `GET /barbers`
-- `PATCH /barbers/:id`
-- `DELETE /barbers/:id`
+### 💇 Barbeiros
+- `POST /barbers` - Criar barbeiro (requer auth)
+- `GET /barbers` - Listar barbeiros (requer auth)
+- `PATCH /barbers/:id` - Atualizar barbeiro (requer auth)
+- `DELETE /barbers/:id` - Deletar barbeiro (soft delete, requer auth)
 
-### Services
-- `POST /services`
-- `GET /services`
-- `PATCH /services/:id`
-- `DELETE /services/:id`
+### ✂️ Serviços
+- `POST /services` - Criar serviço (requer auth)
+- `GET /services` - Listar serviços (requer auth)
+- `PATCH /services/:id` - Atualizar serviço (requer auth)
+- `DELETE /services/:id` - Deletar serviço (soft delete, requer auth)
 
-### Appointments
-- `POST /appointments` (público)
-- `GET /appointments`
-- `PATCH /appointments/:id/status`
+### 📅 Agendamentos
+- `POST /appointments` - Criar agendamento (**público**, com rate limit)
+- `GET /appointments` - Listar agendamentos (requer auth)
+- `PATCH /appointments/:id/status` - Atualizar status (requer auth)
 
-### Customers
-- `GET /customers`
-- `PATCH /customers/:id/block`
+### 👥 Clientes
+- `GET /customers` - Listar clientes (requer auth)
+- `PATCH /customers/:id/block` - Bloquear/desbloquear cliente (requer auth)
 
 ## 🧪 Desenvolvimento
 
 ```bash
-# Type checking
+# Verificar tipos TypeScript
 npm run type-check
 
 # Linting
 npm run lint
+
+# Modo desenvolvimento (watch mode)
+npm run dev
 ```
+
+## 📋 Regras de Negócio Implementadas
+
+- ✅ Impedir agendamento se cliente estiver bloqueado
+- ✅ Limite de 2 agendamentos ativos por cliente
+- ✅ Verificação de conflito de horário antes de criar agendamento
+- ✅ Respeitar limite de barbeiros baseado no plano
+- ✅ Isolamento de dados - barbeiro não acessa dados de outra barbearia
+- ✅ Bloqueio automático de cliente se `noShowCount >= 2`
+- ✅ Criação automática de cliente ao agendar (se não existir)
+
+## 🚀 Preparação para o Futuro
+
+O sistema foi projetado pensando em crescimento e expansão:
+
+- 📱 **SMS Integration** - Estrutura preparada para verificação via SMS
+- 💳 **Stripe Integration** - Preparado para planos pagos e assinaturas
+- 📞 **WhatsApp Business API** - Estrutura para integração futura
+- 📊 **Analytics** - Base para relatórios e métricas
+- 🔔 **Notificações** - Sistema preparado para notificações push/email
+
+## 📊 Status do Projeto
+
+- ✅ Autenticação e Autorização
+- ✅ CRUD de Barbearias
+- ✅ CRUD de Barbeiros
+- ✅ CRUD de Serviços
+- ✅ Sistema de Agendamentos
+- ✅ Gestão de Clientes
+- ✅ Sistema de Planos (estrutura)
+- ✅ Multi-Tenancy completo
+- ✅ Validações e Regras de Negócio
+- ✅ Logging estruturado
+- ✅ Tratamento de erros
 
 ## 📄 Licença
 
 ISC
+
+---
+
+**Desenvolvido como projeto de estudo para portfólio** | Potencial para se tornar SaaS regional
 
