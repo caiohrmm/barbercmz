@@ -39,3 +39,6 @@ ecosystem.config.js
 coverage/
 .nyc_output/
 
+# Postman (local testing)
+postman/
+
