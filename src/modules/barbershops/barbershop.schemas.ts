@@ -33,6 +33,18 @@ export const getBarbershopSchema = z.object({
   }),
 });
 
+export const getBarbershopBySlugSchema = z.object({
+  params: z.object({
+    slug: z.string().min(1, 'Slug is required').regex(/^[a-z0-9-]+$/, 'Invalid slug format'),
+  }),
+});
+
+export const getBarbershopServicesSchema = z.object({
+  params: z.object({
+    id: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid barbershop ID'),
+  }),
+});
+
 export type CreateBarbershopInput = z.infer<typeof createBarbershopSchema>['body'];
 export type GetBarbershopInput = z.infer<typeof getBarbershopSchema>['params'];
 

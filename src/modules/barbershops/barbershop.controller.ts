@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { barbershopService } from './barbershop.service';
+import { serviceService } from '../services/service.service';
 import { AppError } from '../../utils/errors';
 import logger from '../../utils/logger';
 
@@ -45,6 +46,53 @@ export class BarbershopController {
       }
 
       logger.error(error, 'Get barbershop error');
+      res.status(500).json({
+        error: 'Internal server error',
+      });
+    }
+  }
+
+  async getBySlug(req: Request, res: Response): Promise<void> {
+    try {
+      const { slug } = req.params;
+
+      const barbershop = await barbershopService.findBySlug(slug);
+
+      res.status(200).json(barbershop);
+    } catch (error) {
+      if (error instanceof AppError) {
+        res.status(error.statusCode).json({
+          error: error.message,
+        });
+        return;
+      }
+
+      logger.error(error, 'Get barbershop by slug error');
+      res.status(500).json({
+        error: 'Internal server error',
+      });
+    }
+  }
+
+  async getPublicServices(req: Request, res: Response): Promise<void> {
+    try {
+      const { id: barbershopId } = req.params;
+
+      const services = await serviceService.findAll(barbershopId, true);
+
+      res.status(200).json({
+        services,
+        count: services.length,
+      });
+    } catch (error) {
+      if (error instanceof AppError) {
+        res.status(error.statusCode).json({
+          error: error.message,
+        });
+        return;
+      }
+
+      logger.error(error, 'Get public services error');
       res.status(500).json({
         error: 'Internal server error',
       });
