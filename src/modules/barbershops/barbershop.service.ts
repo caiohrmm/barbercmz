@@ -65,7 +65,7 @@ export class BarbershopService {
       throw new ConflictError('A user with this email already exists');
     }
 
-    // Validate plan if provided
+    // Validate plan if provided; otherwise default to "Gratuito"
     let plan = null;
     let maxBarbers = 1;
 
@@ -75,6 +75,11 @@ export class BarbershopService {
         throw new BadRequestError('Invalid or inactive plan');
       }
       maxBarbers = plan.maxBarbers;
+    } else {
+      plan = await Plan.findOne({ name: 'Básico', active: true });
+      if (plan) {
+        maxBarbers = plan.maxBarbers;
+      }
     }
 
     // Start transaction
@@ -260,18 +265,43 @@ export class BarbershopService {
 
     for (const barber of barbers) {
       const wh = barber.workingHours?.find(
-        (w: { dayOfWeek: number; startTime: string; endTime: string; isAvailable?: boolean }) =>
-          w.dayOfWeek === dayOfWeek && w.isAvailable !== false
+        (w: {
+          dayOfWeek: number;
+          startTime: string;
+          endTime: string;
+          lunchStartTime?: string;
+          lunchEndTime?: string;
+          isAvailable?: boolean;
+        }) => w.dayOfWeek === dayOfWeek && w.isAvailable !== false
       );
       if (!wh) continue;
 
       const startMin = timeToMinutes(wh.startTime);
       const endMin = timeToMinutes(wh.endTime);
+      const lunchStartMin =
+        wh.lunchStartTime != null && wh.lunchEndTime != null
+          ? timeToMinutes(wh.lunchStartTime)
+          : null;
+      const lunchEndMin =
+        wh.lunchStartTime != null && wh.lunchEndTime != null
+          ? timeToMinutes(wh.lunchEndTime)
+          : null;
+
       const durationMin = service.duration;
       const lastStartMin = endMin - durationMin;
       if (lastStartMin < startMin) continue;
 
       for (let min = startMin; min <= lastStartMin; min += SLOT_STEP_MINUTES) {
+        const slotEndMin = min + durationMin;
+        if (
+          lunchStartMin != null &&
+          lunchEndMin != null &&
+          min < lunchEndMin &&
+          slotEndMin > lunchStartMin
+        ) {
+          continue;
+        }
+
         const timeStr = minutesToTime(min);
         const slotStart = new Date(y, m - 1, d, Math.floor(min / 60), min % 60);
         const slotEnd = new Date(slotStart.getTime() + durationMin * 60 * 1000);

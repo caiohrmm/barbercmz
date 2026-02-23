@@ -9,6 +9,7 @@
     "start": "node dist/server.js",
     "start:prod": "pm2 start dist/server.js --name barbercmz-backend",
     "seed:plans": "tsx src/scripts/seed-plans.ts",
+    "assign:basico": "tsx src/scripts/assign-basico-plan.ts",
     "lint": "eslint src --ext .ts",
     "type-check": "tsc --noEmit"
   },

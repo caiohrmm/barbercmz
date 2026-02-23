@@ -4,6 +4,9 @@ export interface IWorkingHours {
   dayOfWeek: number; // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
   startTime: string; // Format: "HH:mm"
   endTime: string; // Format: "HH:mm"
+  /** Optional lunch break: barber unavailable between these times (inclusive start, exclusive end) */
+  lunchStartTime?: string; // Format: "HH:mm"
+  lunchEndTime?: string; // Format: "HH:mm"
   isAvailable: boolean;
 }
 
@@ -16,6 +19,8 @@ export interface IBarber extends Document {
   updatedAt: Date;
 }
 
+const timeRegex = /^([0-1][0-9]|2[0-3]):[0-5][0-9]$/;
+
 const WorkingHoursSchema = new Schema<IWorkingHours>(
   {
     dayOfWeek: {
@@ -27,12 +32,20 @@ const WorkingHoursSchema = new Schema<IWorkingHours>(
     startTime: {
       type: String,
       required: true,
-      match: /^([0-1][0-9]|2[0-3]):[0-5][0-9]$/,
+      match: timeRegex,
     },
     endTime: {
       type: String,
       required: true,
-      match: /^([0-1][0-9]|2[0-3]):[0-5][0-9]$/,
+      match: timeRegex,
+    },
+    lunchStartTime: {
+      type: String,
+      match: timeRegex,
+    },
+    lunchEndTime: {
+      type: String,
+      match: timeRegex,
     },
     isAvailable: {
       type: Boolean,

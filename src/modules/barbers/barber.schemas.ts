@@ -1,24 +1,51 @@
 import { z } from 'zod';
 
-const workingHoursSchema = z.object({
-  dayOfWeek: z.number().int().min(0).max(6), // 0 = Sunday, 6 = Saturday
-  startTime: z.string().regex(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format (HH:mm)'),
-  endTime: z.string().regex(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format (HH:mm)'),
-  isAvailable: z.boolean().default(true),
-}).refine(
-  (data) => {
-    // Validate that endTime is after startTime
-    const [startHour, startMin] = data.startTime.split(':').map(Number);
-    const [endHour, endMin] = data.endTime.split(':').map(Number);
-    const startMinutes = startHour * 60 + startMin;
-    const endMinutes = endHour * 60 + endMin;
-    return endMinutes > startMinutes;
-  },
-  {
-    message: 'End time must be after start time',
-    path: ['endTime'],
-  }
-);
+const timeRegex = /^([0-1][0-9]|2[0-3]):[0-5][0-9]$/;
+
+function timeToMinutes(time: string): number {
+  const [h, m] = time.split(':').map(Number);
+  return h * 60 + m;
+}
+
+const workingHoursSchema = z
+  .object({
+    dayOfWeek: z.number().int().min(0).max(6), // 0 = Sunday, 6 = Saturday
+    startTime: z.string().regex(timeRegex, 'Invalid time format (HH:mm)'),
+    endTime: z.string().regex(timeRegex, 'Invalid time format (HH:mm)'),
+    lunchStartTime: z.string().regex(timeRegex, 'Invalid time format (HH:mm)').optional(),
+    lunchEndTime: z.string().regex(timeRegex, 'Invalid time format (HH:mm)').optional(),
+    isAvailable: z.boolean().default(true),
+  })
+  .refine(
+    (data) => {
+      const startMin = timeToMinutes(data.startTime);
+      const endMin = timeToMinutes(data.endTime);
+      return endMin > startMin;
+    },
+    { message: 'End time must be after start time', path: ['endTime'] }
+  )
+  .refine(
+    (data) => {
+      const hasStart = data.lunchStartTime != null && data.lunchStartTime !== '';
+      const hasEnd = data.lunchEndTime != null && data.lunchEndTime !== '';
+      if (!hasStart && !hasEnd) return true;
+      if (hasStart !== hasEnd) return false;
+      const startMin = timeToMinutes(data.startTime);
+      const endMin = timeToMinutes(data.endTime);
+      const lunchStart = timeToMinutes(data.lunchStartTime!);
+      const lunchEnd = timeToMinutes(data.lunchEndTime!);
+      return (
+        lunchEnd > lunchStart &&
+        lunchStart >= startMin &&
+        lunchEnd <= endMin
+      );
+    },
+    {
+      message:
+        'Lunch break: provide both start and end; end must be after start and within working hours',
+      path: ['lunchEndTime'],
+    }
+  );
 
 export const createBarberSchema = z.object({
   body: z.object({

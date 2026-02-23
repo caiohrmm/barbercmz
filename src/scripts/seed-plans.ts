@@ -2,7 +2,7 @@
  * Seed dos 3 planos do negócio.
  * Execute: npm run seed:plans (ou npx tsx src/scripts/seed-plans.ts)
  *
- * - Básico: R$ 40/mês, 1 barbeiro
+ * - Básico: R$ 40/mês, 1 barbeiro (padrão para novas barbearias sem plano escolhido)
  * - Crescimento: R$ 60/mês, 2 a 5 barbeiros
  * - Equipe: R$ 80/mês, 5+ barbeiros
  *
