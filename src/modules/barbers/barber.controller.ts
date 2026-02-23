@@ -18,6 +18,7 @@ export class BarberController {
       const data = {
         name: req.body.name,
         workingHours: req.body.workingHours,
+        unavailableDates: req.body.unavailableDates,
         barbershopId: req.barbershopId,
       };
 

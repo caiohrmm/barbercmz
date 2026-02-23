@@ -6,12 +6,14 @@ import logger from '../../utils/logger';
 export interface CreateBarberData {
   name: string;
   workingHours?: IWorkingHours[];
+  unavailableDates?: string[];
   barbershopId: string;
 }
 
 export interface UpdateBarberData {
   name?: string;
   workingHours?: IWorkingHours[];
+  unavailableDates?: string[];
   active?: boolean;
 }
 
@@ -19,6 +21,7 @@ export interface BarberResponse {
   id: string;
   name: string;
   workingHours: IWorkingHours[];
+  unavailableDates: string[];
   barbershopId: string;
   active: boolean;
   createdAt: Date;
@@ -50,6 +53,7 @@ export class BarberService {
     const barber = new Barber({
       name: data.name,
       workingHours: data.workingHours || [],
+      unavailableDates: data.unavailableDates ?? [],
       barbershopId: data.barbershopId,
       active: true,
     });
@@ -69,6 +73,7 @@ export class BarberService {
       id: barber._id.toString(),
       name: barber.name,
       workingHours: barber.workingHours,
+      unavailableDates: barber.unavailableDates ?? [],
       barbershopId: barber.barbershopId.toString(),
       active: barber.active,
       createdAt: barber.createdAt,
@@ -91,6 +96,7 @@ export class BarberService {
       id: barber._id.toString(),
       name: barber.name,
       workingHours: barber.workingHours,
+      unavailableDates: barber.unavailableDates ?? [],
       barbershopId: barber.barbershopId.toString(),
       active: barber.active,
       createdAt: barber.createdAt,
@@ -112,6 +118,7 @@ export class BarberService {
       id: barber._id.toString(),
       name: barber.name,
       workingHours: barber.workingHours,
+      unavailableDates: barber.unavailableDates ?? [],
       barbershopId: barber.barbershopId.toString(),
       active: barber.active,
       createdAt: barber.createdAt,
@@ -136,6 +143,10 @@ export class BarberService {
 
     if (data.workingHours !== undefined) {
       barber.workingHours = data.workingHours;
+    }
+
+    if (data.unavailableDates !== undefined) {
+      barber.unavailableDates = data.unavailableDates;
     }
 
     if (data.active !== undefined) {
@@ -174,6 +185,7 @@ export class BarberService {
       id: barber._id.toString(),
       name: barber.name,
       workingHours: barber.workingHours,
+      unavailableDates: barber.unavailableDates ?? [],
       barbershopId: barber.barbershopId.toString(),
       active: barber.active,
       createdAt: barber.createdAt,

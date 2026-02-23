@@ -13,6 +13,8 @@ export interface IWorkingHours {
 export interface IBarber extends Document {
   name: string;
   workingHours: IWorkingHours[];
+  /** Datas em que o barbeiro não atende (feriados, folga). Formato YYYY-MM-DD. */
+  unavailableDates: string[];
   barbershopId: Types.ObjectId;
   active: boolean;
   createdAt: Date;
@@ -65,6 +67,14 @@ const BarberSchema = new Schema<IBarber>(
     workingHours: {
       type: [WorkingHoursSchema],
       default: [],
+    },
+    unavailableDates: {
+      type: [String],
+      default: [],
+      validate: {
+        validator: (v: string[]) => v.every((d) => /^\d{4}-\d{2}-\d{2}$/.test(d)),
+        message: 'Each date must be YYYY-MM-DD',
+      },
     },
     barbershopId: {
       type: Schema.Types.ObjectId,

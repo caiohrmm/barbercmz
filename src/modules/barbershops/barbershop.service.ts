@@ -264,6 +264,8 @@ export class BarbershopService {
     const slots: { time: string; barberId: string; barberName: string }[] = [];
 
     for (const barber of barbers) {
+      if (barber.unavailableDates?.includes(dateStr)) continue;
+
       const wh = barber.workingHours?.find(
         (w: {
           dayOfWeek: number;
