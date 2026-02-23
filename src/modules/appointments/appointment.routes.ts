@@ -5,13 +5,35 @@ import { authenticate, authorize } from '../../middlewares/auth.middleware';
 import { appointmentRateLimit } from '../../config/security';
 import {
   createAppointmentSchema,
+  requestVerificationSchema,
+  verifyAppointmentSchema,
   getAppointmentsSchema,
   updateAppointmentStatusSchema,
 } from './appointment.schemas';
 
 const router = Router();
 
-// Public route for creating appointments (with rate limit)
+// Public: request SMS verification (sends code, returns verificationId)
+router.post(
+  '/request-verification',
+  appointmentRateLimit,
+  validate(requestVerificationSchema),
+  (req, res) => {
+    appointmentController.requestVerification(req, res);
+  }
+);
+
+// Public: verify code and create appointment
+router.post(
+  '/verify',
+  appointmentRateLimit,
+  validate(verifyAppointmentSchema),
+  (req, res) => {
+    appointmentController.verifyAndCreate(req, res);
+  }
+);
+
+// Legacy public route (direct create without SMS) - can be removed if only SMS flow is desired
 router.post(
   '/',
   appointmentRateLimit,

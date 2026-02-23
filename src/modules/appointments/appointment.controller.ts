@@ -5,6 +5,63 @@ import logger from '../../utils/logger';
 import { AuthRequest } from '../../middlewares/auth.middleware';
 
 export class AppointmentController {
+  async requestVerification(req: AuthRequest | any, res: Response): Promise<void> {
+    try {
+      const data = {
+        barbershopId: req.body.barbershopId,
+        barberId: req.body.barberId,
+        serviceId: req.body.serviceId,
+        customerName: req.body.customerName,
+        customerPhone: req.body.customerPhone,
+        startTime: new Date(req.body.startTime),
+      };
+
+      const result = await appointmentService.requestVerification(data);
+
+      res.status(200).json(result);
+    } catch (error) {
+      if (error instanceof AppError) {
+        res.status(error.statusCode).json({
+          error: error.message,
+        });
+        return;
+      }
+
+      logger.error(error, 'Request verification error');
+      res.status(500).json({
+        error: 'Internal server error',
+      });
+    }
+  }
+
+  async verifyAndCreate(req: AuthRequest | any, res: Response): Promise<void> {
+    try {
+      const { verificationId, code } = req.body;
+
+      const appointment = await appointmentService.verifyAndCreateAppointment(
+        verificationId,
+        code
+      );
+
+      res.status(201).json({
+        message: 'Appointment created successfully',
+        appointment,
+      });
+    } catch (error) {
+      if (error instanceof AppError) {
+        res.status(error.statusCode).json({
+          error: error.message,
+        });
+        return;
+      }
+
+      logger.error(error, 'Verify appointment error');
+      res.status(500).json({
+        error: 'Internal server error',
+      });
+    }
+  }
+
   async create(req: AuthRequest | any, res: Response): Promise<void> {
     try {
       const data = {

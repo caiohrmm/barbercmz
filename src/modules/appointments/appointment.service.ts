@@ -1,10 +1,20 @@
 import { Appointment } from './appointment.model';
+import { PendingVerification } from './pending-verification.model';
 import { Customer } from '../customers/customer.model';
 import { Service } from '../services/service.model';
 import { Barber } from '../barbers/barber.model';
 import { Barbershop } from '../barbershops/barbershop.model';
 import { BadRequestError, NotFoundError } from '../../utils/errors';
+import { sendVerificationSms } from '../../services/sms.service';
 import logger from '../../utils/logger';
+
+const CODE_EXPIRY_MINUTES = 10;
+const MAX_PENDING_PER_PHONE_PER_WINDOW = 3;
+const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 min
+
+function generateCode(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
 
 export interface CreateAppointmentData {
   barbershopId: string;
@@ -38,7 +48,120 @@ export interface AppointmentListResponse extends AppointmentResponse {
   customer?: { id: string; name: string; phone: string };
 }
 
+export interface RequestVerificationResponse {
+  verificationId: string;
+  message: string;
+}
+
 export class AppointmentService {
+  /**
+   * Request SMS verification: creates a pending verification, sends code, returns verificationId.
+   * Rate limited per phone.
+   */
+  async requestVerification(data: CreateAppointmentData): Promise<RequestVerificationResponse> {
+    const barbershop = await Barbershop.findById(data.barbershopId);
+    if (!barbershop || !barbershop.active) {
+      throw new NotFoundError('Barbershop not found or inactive');
+    }
+
+    const barber = await Barber.findOne({
+      _id: data.barberId,
+      barbershopId: data.barbershopId,
+      active: true,
+    });
+    if (!barber) {
+      throw new NotFoundError('Barber not found or inactive');
+    }
+
+    const service = await Service.findOne({
+      _id: data.serviceId,
+      barbershopId: data.barbershopId,
+      active: true,
+    });
+    if (!service) {
+      throw new NotFoundError('Service not found or inactive');
+    }
+
+    // Rate limit: max N pending verifications per phone in the last window
+    const since = new Date(Date.now() - RATE_LIMIT_WINDOW_MS);
+    const recentCount = await PendingVerification.countDocuments({
+      customerPhone: data.customerPhone,
+      createdAt: { $gte: since },
+    });
+    if (recentCount >= MAX_PENDING_PER_PHONE_PER_WINDOW) {
+      throw new BadRequestError(
+        'Muitas tentativas. Aguarde alguns minutos antes de solicitar um novo código.'
+      );
+    }
+
+    const startTime = new Date(data.startTime);
+    const expiresAt = new Date(Date.now() + CODE_EXPIRY_MINUTES * 60 * 1000);
+    const code = generateCode();
+
+    const pending = new PendingVerification({
+      barbershopId: data.barbershopId,
+      barberId: data.barberId,
+      serviceId: data.serviceId,
+      customerName: data.customerName,
+      customerPhone: data.customerPhone,
+      startTime,
+      code,
+      expiresAt,
+    });
+    await pending.save();
+
+    await sendVerificationSms(data.customerPhone, code);
+
+    logger.info(
+      { verificationId: pending._id, barbershopId: data.barbershopId },
+      'Verification requested'
+    );
+
+    return {
+      verificationId: pending._id.toString(),
+      message: 'Código enviado por SMS',
+    };
+  }
+
+  /**
+   * Verify code and create the appointment. Deletes pending on success.
+   */
+  async verifyAndCreateAppointment(
+    verificationId: string,
+    code: string
+  ): Promise<AppointmentResponse> {
+    const pending = await PendingVerification.findById(verificationId);
+    if (!pending) {
+      throw new BadRequestError('Link expirado ou inválido. Solicite um novo código.');
+    }
+    if (pending.code !== code.trim()) {
+      throw new BadRequestError('Código incorreto. Tente novamente.');
+    }
+    if (new Date() > pending.expiresAt) {
+      await PendingVerification.findByIdAndDelete(verificationId);
+      throw new BadRequestError('Código expirado. Solicite um novo código.');
+    }
+
+    const data: CreateAppointmentData = {
+      barbershopId: pending.barbershopId.toString(),
+      barberId: pending.barberId.toString(),
+      serviceId: pending.serviceId.toString(),
+      customerName: pending.customerName,
+      customerPhone: pending.customerPhone,
+      startTime: pending.startTime,
+    };
+
+    const appointment = await this.create(data);
+    await PendingVerification.findByIdAndDelete(verificationId);
+
+    logger.info(
+      { appointmentId: appointment.id, verificationId },
+      'Appointment confirmed via SMS'
+    );
+
+    return appointment;
+  }
+
   async create(data: CreateAppointmentData): Promise<AppointmentResponse> {
     // Verify barbershop exists and is active
     const barbershop = await Barbershop.findById(data.barbershopId);

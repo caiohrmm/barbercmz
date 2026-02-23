@@ -21,6 +21,24 @@ export const getAppointmentsSchema = z.object({
   }).optional(),
 });
 
+export const requestVerificationSchema = z.object({
+  body: z.object({
+    barbershopId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid barbershop ID'),
+    barberId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid barber ID'),
+    serviceId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid service ID'),
+    customerName: z.string().min(2, 'Name must be at least 2 characters').max(100),
+    customerPhone: z.string().regex(/^\+?[1-9]\d{1,14}$/, 'Invalid phone format (E.164)'),
+    startTime: z.string().datetime('Invalid date format'),
+  }),
+});
+
+export const verifyAppointmentSchema = z.object({
+  body: z.object({
+    verificationId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid verification ID'),
+    code: z.string().length(6, 'Code must be 6 digits').regex(/^\d{6}$/, 'Code must be 6 digits'),
+  }),
+});
+
 export const updateAppointmentStatusSchema = z.object({
   params: z.object({
     id: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid appointment ID'),
