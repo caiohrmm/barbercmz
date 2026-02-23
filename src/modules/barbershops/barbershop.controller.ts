@@ -101,6 +101,31 @@ export class BarbershopController {
     }
   }
 
+  async getPublicBarbers(req: Request, res: Response): Promise<void> {
+    try {
+      const { id: barbershopId } = req.params;
+
+      const barbers = await barbershopService.getPublicBarbers(barbershopId);
+
+      res.status(200).json({
+        barbers,
+        count: barbers.length,
+      });
+    } catch (error) {
+      if (error instanceof AppError) {
+        res.status(error.statusCode).json({
+          error: error.message,
+        });
+        return;
+      }
+
+      logger.error(error, 'Get public barbers error');
+      res.status(500).json({
+        error: 'Internal server error',
+      });
+    }
+  }
+
   async uploadLogo(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { id } = req.params;
@@ -143,12 +168,17 @@ export class BarbershopController {
   async getAvailableSlots(req: Request, res: Response): Promise<void> {
     try {
       const { id: barbershopId } = req.params;
-      const { date, serviceId } = req.query as { date: string; serviceId: string };
+      const { date, serviceId, barberId } = req.query as {
+        date: string;
+        serviceId: string;
+        barberId?: string;
+      };
 
       const slots = await barbershopService.getAvailableSlots(
         barbershopId,
         date,
-        serviceId
+        serviceId,
+        barberId
       );
 
       res.status(200).json({ slots });

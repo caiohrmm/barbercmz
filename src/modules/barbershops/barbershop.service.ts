@@ -234,13 +234,34 @@ export class BarbershopService {
   }
 
   /**
+   * List barbers for public booking (id + name only). Used to show barber choice when multiple.
+   */
+  async getPublicBarbers(
+    barbershopId: string
+  ): Promise<{ id: string; name: string }[]> {
+    const barbershop = await Barbershop.findById(barbershopId);
+    if (!barbershop || !barbershop.active) {
+      throw new NotFoundError('Barbershop not found or inactive');
+    }
+    const barbers = await Barber.find({ barbershopId, active: true })
+      .select('name')
+      .lean();
+    return barbers.map((b) => ({
+      id: (b._id as mongoose.Types.ObjectId).toString(),
+      name: b.name,
+    }));
+  }
+
+  /**
    * Get available time slots for a date and service (public booking).
    * Returns slots as { time: "HH:mm", barberId, barberName } in local date.
+   * If barberId is provided, only that barber's slots are returned.
    */
   async getAvailableSlots(
     barbershopId: string,
     dateStr: string,
-    serviceId: string
+    serviceId: string,
+    barberId?: string
   ): Promise<{ time: string; barberId: string; barberName: string }[]> {
     const barbershop = await Barbershop.findById(barbershopId);
     if (!barbershop || !barbershop.active) {
@@ -260,7 +281,14 @@ export class BarbershopService {
     const dateObj = new Date(y, m - 1, d);
     const dayOfWeek = dateObj.getDay();
 
-    const barbers = await Barber.find({ barbershopId, active: true }).lean();
+    const barberFilter: { barbershopId: string; active: boolean; _id?: mongoose.Types.ObjectId } = {
+      barbershopId,
+      active: true,
+    };
+    if (barberId) {
+      barberFilter._id = new mongoose.Types.ObjectId(barberId);
+    }
+    const barbers = await Barber.find(barberFilter).lean();
     const slots: { time: string; barberId: string; barberName: string }[] = [];
 
     for (const barber of barbers) {
