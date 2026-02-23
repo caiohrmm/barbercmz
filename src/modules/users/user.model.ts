@@ -24,7 +24,6 @@ const UserSchema = new Schema<IUser>(
       unique: true,
       lowercase: true,
       trim: true,
-      index: true,
     },
     passwordHash: {
       type: String,
@@ -51,8 +50,6 @@ const UserSchema = new Schema<IUser>(
   }
 );
 
-// Index for email (already defined above, but explicit for clarity)
-UserSchema.index({ email: 1 }, { unique: true });
 // Index for multi-tenant queries
 UserSchema.index({ barbershopId: 1, active: 1 });
 

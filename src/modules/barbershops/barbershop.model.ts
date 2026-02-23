@@ -23,7 +23,6 @@ const BarbershopSchema = new Schema<IBarbershop>(
       unique: true,
       lowercase: true,
       trim: true,
-      index: true,
     },
     planId: {
       type: Schema.Types.ObjectId,
@@ -44,9 +43,6 @@ const BarbershopSchema = new Schema<IBarbershop>(
     timestamps: true,
   }
 );
-
-// Index for slug (already defined above, but explicit for clarity)
-BarbershopSchema.index({ slug: 1 }, { unique: true });
 
 export const Barbershop = mongoose.model<IBarbershop>('Barbershop', BarbershopSchema);
 
