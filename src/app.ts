@@ -42,6 +42,7 @@ app.get('/health', (_req: Request, res: Response) => {
 // Routes
 import authRoutes from './modules/auth/auth.routes';
 import barbershopRoutes from './modules/barbershops/barbershop.routes';
+import planRoutes from './modules/plans/plan.routes';
 import barberRoutes from './modules/barbers/barber.routes';
 import serviceRoutes from './modules/services/service.routes';
 import appointmentRoutes from './modules/appointments/appointment.routes';
@@ -49,6 +50,7 @@ import customerRoutes from './modules/customers/customer.routes';
 
 app.use('/auth', authRoutes);
 app.use('/barbershops', barbershopRoutes);
+app.use('/plans', planRoutes);
 app.use('/barbers', barberRoutes);
 app.use('/services', serviceRoutes);
 app.use('/appointments', appointmentRoutes);

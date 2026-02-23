@@ -4,6 +4,7 @@ export interface IBarbershop extends Document {
   name: string;
   slug: string;
   planId?: Types.ObjectId;
+  currentSubscriptionId?: Types.ObjectId;
   maxBarbers: number;
   active: boolean;
   createdAt: Date;
@@ -27,6 +28,10 @@ const BarbershopSchema = new Schema<IBarbershop>(
     planId: {
       type: Schema.Types.ObjectId,
       ref: 'Plan',
+    },
+    currentSubscriptionId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Subscription',
     },
     maxBarbers: {
       type: Number,

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { barberController } from './barber.controller';
 import { validate } from '../../middlewares/validate.middleware';
 import { authenticate, authorize } from '../../middlewares/auth.middleware';
+import { checkBarberLimit } from '../../middlewares/checkBarberLimit.middleware';
 import {
   createBarberSchema,
   getBarbersSchema,
@@ -17,7 +18,7 @@ router.use(authenticate);
 // All routes require owner or barber role
 router.use(authorize('owner', 'barber'));
 
-router.post('/', validate(createBarberSchema), (req, res) => {
+router.post('/', checkBarberLimit, validate(createBarberSchema), (req, res) => {
   barberController.create(req, res);
 });
 

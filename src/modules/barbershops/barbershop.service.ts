@@ -100,6 +100,9 @@ export class BarbershopService {
         });
 
         await subscription.save({ session });
+
+        barbershop.currentSubscriptionId = subscription._id;
+        await barbershop.save({ session });
       }
 
       // Commit transaction
