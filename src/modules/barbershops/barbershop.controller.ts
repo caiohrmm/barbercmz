@@ -98,6 +98,33 @@ export class BarbershopController {
       });
     }
   }
+
+  async getAvailableSlots(req: Request, res: Response): Promise<void> {
+    try {
+      const { id: barbershopId } = req.params;
+      const { date, serviceId } = req.query as { date: string; serviceId: string };
+
+      const slots = await barbershopService.getAvailableSlots(
+        barbershopId,
+        date,
+        serviceId
+      );
+
+      res.status(200).json({ slots });
+    } catch (error) {
+      if (error instanceof AppError) {
+        res.status(error.statusCode).json({
+          error: error.message,
+        });
+        return;
+      }
+
+      logger.error(error, 'Get available slots error');
+      res.status(500).json({
+        error: 'Internal server error',
+      });
+    }
+  }
 }
 
 export const barbershopController = new BarbershopController();

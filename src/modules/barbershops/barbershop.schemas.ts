@@ -45,6 +45,16 @@ export const getBarbershopServicesSchema = z.object({
   }),
 });
 
+export const getAvailableSlotsSchema = z.object({
+  params: z.object({
+    id: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid barbershop ID'),
+  }),
+  query: z.object({
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD'),
+    serviceId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid service ID'),
+  }),
+});
+
 export type CreateBarbershopInput = z.infer<typeof createBarbershopSchema>['body'];
 export type GetBarbershopInput = z.infer<typeof getBarbershopSchema>['params'];
 

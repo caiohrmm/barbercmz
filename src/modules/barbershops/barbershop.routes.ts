@@ -6,6 +6,7 @@ import {
   getBarbershopSchema,
   getBarbershopBySlugSchema,
   getBarbershopServicesSchema,
+  getAvailableSlotsSchema,
 } from './barbershop.schemas';
 
 const router = Router();
@@ -22,6 +23,14 @@ router.get('/slug/:slug', validate(getBarbershopBySlugSchema), (req, res) => {
 router.get('/:id/services', validate(getBarbershopServicesSchema), (req, res) => {
   barbershopController.getPublicServices(req, res);
 });
+
+router.get(
+  '/:id/available-slots',
+  validate(getAvailableSlotsSchema),
+  (req, res) => {
+    barbershopController.getAvailableSlots(req, res);
+  }
+);
 
 router.get('/:id', validate(getBarbershopSchema), (req, res) => {
   barbershopController.getById(req, res);

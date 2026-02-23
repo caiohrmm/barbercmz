@@ -3,10 +3,26 @@ import { Barbershop } from './barbershop.model';
 import { User } from '../users/user.model';
 import { Plan } from '../plans/plan.model';
 import { Subscription } from '../plans/subscription.model';
+import { Barber } from '../barbers/barber.model';
+import { Service } from '../services/service.model';
+import { Appointment } from '../appointments/appointment.model';
 import { hashPassword } from '../../utils/password';
 import { BadRequestError, ConflictError, NotFoundError } from '../../utils/errors';
 import logger from '../../utils/logger';
 import { generateSlug } from './barbershop.schemas';
+
+const SLOT_STEP_MINUTES = 30;
+
+function timeToMinutes(timeStr: string): number {
+  const [h, m] = timeStr.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function minutesToTime(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+}
 
 export interface CreateBarbershopData {
   name: string;
@@ -180,6 +196,76 @@ export class BarbershopService {
       createdAt: barbershop.createdAt,
       updatedAt: barbershop.updatedAt,
     };
+  }
+
+  /**
+   * Get available time slots for a date and service (public booking).
+   * Returns slots as { time: "HH:mm", barberId, barberName } in local date.
+   */
+  async getAvailableSlots(
+    barbershopId: string,
+    dateStr: string,
+    serviceId: string
+  ): Promise<{ time: string; barberId: string; barberName: string }[]> {
+    const barbershop = await Barbershop.findById(barbershopId);
+    if (!barbershop || !barbershop.active) {
+      throw new NotFoundError('Barbershop not found or inactive');
+    }
+
+    const service = await Service.findOne({
+      _id: serviceId,
+      barbershopId,
+      active: true,
+    });
+    if (!service) {
+      throw new NotFoundError('Service not found or inactive');
+    }
+
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const dateObj = new Date(y, m - 1, d);
+    const dayOfWeek = dateObj.getDay();
+
+    const barbers = await Barber.find({ barbershopId, active: true }).lean();
+    const slots: { time: string; barberId: string; barberName: string }[] = [];
+
+    for (const barber of barbers) {
+      const wh = barber.workingHours?.find(
+        (w: { dayOfWeek: number; startTime: string; endTime: string; isAvailable?: boolean }) =>
+          w.dayOfWeek === dayOfWeek && w.isAvailable !== false
+      );
+      if (!wh) continue;
+
+      const startMin = timeToMinutes(wh.startTime);
+      const endMin = timeToMinutes(wh.endTime);
+      const durationMin = service.duration;
+      const lastStartMin = endMin - durationMin;
+      if (lastStartMin < startMin) continue;
+
+      for (let min = startMin; min <= lastStartMin; min += SLOT_STEP_MINUTES) {
+        const timeStr = minutesToTime(min);
+        const slotStart = new Date(y, m - 1, d, Math.floor(min / 60), min % 60);
+        const slotEnd = new Date(slotStart.getTime() + durationMin * 60 * 1000);
+
+        const conflict = await Appointment.findOne({
+          barbershopId: new mongoose.Types.ObjectId(barbershopId),
+          barberId: barber._id,
+          status: 'scheduled',
+          $or: [
+            { startTime: { $lt: slotEnd }, endTime: { $gt: slotStart } },
+          ],
+        });
+        if (conflict) continue;
+
+        slots.push({
+          time: timeStr,
+          barberId: barber._id.toString(),
+          barberName: barber.name,
+        });
+      }
+    }
+
+    slots.sort((a, b) => a.time.localeCompare(b.time) || a.barberName.localeCompare(b.barberName));
+    return slots;
   }
 }
 
