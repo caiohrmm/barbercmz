@@ -32,6 +32,12 @@ export interface AppointmentResponse {
   updatedAt: Date;
 }
 
+export interface AppointmentListResponse extends AppointmentResponse {
+  barber?: { id: string; name: string };
+  service?: { id: string; name: string; duration: number; price: number };
+  customer?: { id: string; name: string; phone: string };
+}
+
 export class AppointmentService {
   async create(data: CreateAppointmentData): Promise<AppointmentResponse> {
     // Verify barbershop exists and is active
@@ -174,8 +180,8 @@ export class AppointmentService {
     customerId?: string;
     startDate?: Date;
     endDate?: Date;
-  }): Promise<AppointmentResponse[]> {
-    const query: any = {
+  }): Promise<AppointmentListResponse[]> {
+    const query: Record<string, unknown> = {
       barbershopId,
     };
 
@@ -194,10 +200,10 @@ export class AppointmentService {
     if (filters?.startDate || filters?.endDate) {
       query.startTime = {};
       if (filters.startDate) {
-        query.startTime.$gte = filters.startDate;
+        (query.startTime as Record<string, Date>).$gte = filters.startDate;
       }
       if (filters.endDate) {
-        query.startTime.$lte = filters.endDate;
+        (query.startTime as Record<string, Date>).$lte = filters.endDate;
       }
     }
 
@@ -205,20 +211,34 @@ export class AppointmentService {
       .populate('barberId', 'name')
       .populate('serviceId', 'name duration price')
       .populate('customerId', 'name phone')
-      .sort({ startTime: 1 });
+      .sort({ startTime: 1 })
+      .lean();
 
-    return appointments.map((appointment) => ({
-      id: appointment._id.toString(),
-      barbershopId: appointment.barbershopId.toString(),
-      barberId: appointment.barberId.toString(),
-      serviceId: appointment.serviceId.toString(),
-      customerId: appointment.customerId.toString(),
-      startTime: appointment.startTime,
-      endTime: appointment.endTime,
-      status: appointment.status,
-      createdAt: appointment.createdAt,
-      updatedAt: appointment.updatedAt,
-    }));
+    return appointments.map((apt) => {
+      const barber = apt.barberId as { _id: { toString: () => string }; name: string } | null;
+      const service = apt.serviceId as { _id: { toString: () => string }; name: string; duration: number; price: number } | null;
+      const customer = apt.customerId as { _id: { toString: () => string }; name: string; phone: string } | null;
+
+      const barberIdStr = barber?._id ? barber._id.toString() : String(apt.barberId);
+      const serviceIdStr = service?._id ? service._id.toString() : String(apt.serviceId);
+      const customerIdStr = customer?._id ? customer._id.toString() : String(apt.customerId);
+
+      return {
+        id: (apt._id as { toString: () => string }).toString(),
+        barbershopId: (apt.barbershopId as { toString: () => string }).toString(),
+        barberId: barberIdStr,
+        serviceId: serviceIdStr,
+        customerId: customerIdStr,
+        startTime: apt.startTime,
+        endTime: apt.endTime,
+        status: apt.status,
+        createdAt: apt.createdAt,
+        updatedAt: apt.updatedAt,
+        barber: barber ? { id: barber._id.toString(), name: barber.name } : undefined,
+        service: service ? { id: service._id.toString(), name: service.name, duration: service.duration, price: service.price } : undefined,
+        customer: customer ? { id: customer._id.toString(), name: customer.name, phone: customer.phone } : undefined,
+      };
+    });
   }
 
   async updateStatus(
