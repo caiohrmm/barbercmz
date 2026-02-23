@@ -13,6 +13,9 @@ import { generateSlug } from './barbershop.schemas';
 
 const SLOT_STEP_MINUTES = 30;
 
+/** Dias grátis de demonstração para novas barbearias com plano. */
+const TRIAL_DAYS = 30;
+
 function timeToMinutes(timeStr: string): number {
   const [h, m] = timeStr.split(':').map(Number);
   return h * 60 + m;
@@ -105,15 +108,16 @@ export class BarbershopService {
 
       await owner.save({ session });
 
-      // Create subscription if plan is provided
+      // Create subscription if plan is provided (sempre 30 dias grátis para demonstração)
       if (plan) {
+        const trialEndsAt = new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
         const subscription = new Subscription({
           barbershopId: barbershop._id,
           planId: plan._id,
           status: 'trial',
           currentPeriodStart: new Date(),
-          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-          trialEndsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days trial
+          currentPeriodEnd: trialEndsAt,
+          trialEndsAt,
         });
 
         await subscription.save({ session });
