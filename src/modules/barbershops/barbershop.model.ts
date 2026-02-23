@@ -3,6 +3,7 @@ import mongoose, { Schema, Document, Types } from 'mongoose';
 export interface IBarbershop extends Document {
   name: string;
   slug: string;
+  logoUrl?: string;
   planId?: Types.ObjectId;
   currentSubscriptionId?: Types.ObjectId;
   maxBarbers: number;
@@ -23,6 +24,10 @@ const BarbershopSchema = new Schema<IBarbershop>(
       required: true,
       unique: true,
       lowercase: true,
+      trim: true,
+    },
+    logoUrl: {
+      type: String,
       trim: true,
     },
     planId: {

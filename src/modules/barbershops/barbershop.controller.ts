@@ -1,8 +1,10 @@
 import { Request, Response } from 'express';
 import { barbershopService } from './barbershop.service';
 import { serviceService } from '../services/service.service';
+import { uploadLogo } from '../../services/cloudinary.service';
 import { AppError } from '../../utils/errors';
 import logger from '../../utils/logger';
+import type { AuthRequest } from '../../middlewares/auth.middleware';
 
 export class BarbershopController {
   async create(req: Request, res: Response): Promise<void> {
@@ -93,6 +95,45 @@ export class BarbershopController {
       }
 
       logger.error(error, 'Get public services error');
+      res.status(500).json({
+        error: 'Internal server error',
+      });
+    }
+  }
+
+  async uploadLogo(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const file = req.file;
+
+      if (!file || !file.buffer) {
+        res.status(400).json({ error: 'No logo file provided' });
+        return;
+      }
+
+      const logoUrl = await uploadLogo(file.buffer, file.mimetype, id);
+      const barbershop = await barbershopService.updateLogoUrl(id, logoUrl);
+
+      res.status(200).json({
+        message: 'Logo updated successfully',
+        barbershop,
+      });
+    } catch (error) {
+      if (error instanceof AppError) {
+        res.status(error.statusCode).json({
+          error: error.message,
+        });
+        return;
+      }
+      if (error instanceof Error && error.message.includes('Cloudinary')) {
+        res.status(503).json({ error: error.message });
+        return;
+      }
+      if (error instanceof Error && (error.message.includes('Invalid image') || error.message.includes('too large'))) {
+        res.status(400).json({ error: error.message });
+        return;
+      }
+      logger.error(error, 'Upload logo error');
       res.status(500).json({
         error: 'Internal server error',
       });

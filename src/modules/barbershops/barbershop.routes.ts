@@ -1,6 +1,9 @@
 import { Router } from 'express';
 import { barbershopController } from './barbershop.controller';
 import { validate } from '../../middlewares/validate.middleware';
+import { authenticate, authorize } from '../../middlewares/auth.middleware';
+import { validateBarbershopOwner } from '../../middlewares/validateBarbershopOwner.middleware';
+import { uploadLogo as multerUploadLogo } from '../../config/multer';
 import {
   createBarbershopSchema,
   getBarbershopSchema,
@@ -19,6 +22,23 @@ router.post('/', validate(createBarbershopSchema), (req, res) => {
 router.get('/slug/:slug', validate(getBarbershopBySlugSchema), (req, res) => {
   barbershopController.getBySlug(req, res);
 });
+
+// Logo upload (owner only, own barbershop)
+router.post(
+  '/:id/logo',
+  authenticate,
+  authorize('owner'),
+  validate(getBarbershopSchema),
+  validateBarbershopOwner,
+  (req, res, next) => {
+    multerUploadLogo(req, res, (err: unknown) => {
+      if (err) {
+        return next(err);
+      }
+      barbershopController.uploadLogo(req as import('../../middlewares/auth.middleware').AuthRequest, res);
+    });
+  }
+);
 
 router.get('/:id/services', validate(getBarbershopServicesSchema), (req, res) => {
   barbershopController.getPublicServices(req, res);

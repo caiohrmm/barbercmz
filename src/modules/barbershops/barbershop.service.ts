@@ -37,6 +37,7 @@ export interface BarbershopResponse {
   id: string;
   name: string;
   slug: string;
+  logoUrl?: string;
   planId?: string;
   maxBarbers: number;
   active: boolean;
@@ -137,6 +138,7 @@ export class BarbershopService {
         id: barbershop._id.toString(),
         name: barbershop.name,
         slug: barbershop.slug,
+        logoUrl: barbershop.logoUrl,
         planId: barbershop.planId?.toString(),
         maxBarbers: barbershop.maxBarbers,
         active: barbershop.active,
@@ -163,6 +165,7 @@ export class BarbershopService {
       id: barbershop._id.toString(),
       name: barbershop.name,
       slug: barbershop.slug,
+      logoUrl: barbershop.logoUrl,
       planId: barbershop.planId
         ? typeof barbershop.planId === 'object'
           ? barbershop.planId.toString()
@@ -186,11 +189,34 @@ export class BarbershopService {
       id: barbershop._id.toString(),
       name: barbershop.name,
       slug: barbershop.slug,
+      logoUrl: barbershop.logoUrl,
       planId: barbershop.planId
         ? typeof barbershop.planId === 'object'
           ? barbershop.planId.toString()
           : barbershop.planId
         : undefined,
+      maxBarbers: barbershop.maxBarbers,
+      active: barbershop.active,
+      createdAt: barbershop.createdAt,
+      updatedAt: barbershop.updatedAt,
+    };
+  }
+
+  async updateLogoUrl(id: string, logoUrl: string): Promise<BarbershopResponse> {
+    const barbershop = await Barbershop.findByIdAndUpdate(
+      id,
+      { logoUrl },
+      { new: true }
+    );
+    if (!barbershop) {
+      throw new NotFoundError('Barbershop not found');
+    }
+    return {
+      id: barbershop._id.toString(),
+      name: barbershop.name,
+      slug: barbershop.slug,
+      logoUrl: barbershop.logoUrl,
+      planId: barbershop.planId?.toString(),
       maxBarbers: barbershop.maxBarbers,
       active: barbershop.active,
       createdAt: barbershop.createdAt,
