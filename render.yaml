@@ -1,0 +1,30 @@
+# Render Blueprint - BarberCMZ API
+# https://render.com/docs/blueprint-spec
+#
+# Uso: no Render, "New" > "Blueprint" e conecte este repositório,
+# ou crie um Web Service manualmente e use os comandos abaixo.
+
+services:
+  - type: web
+    name: barbercmz
+    runtime: node
+
+    # Branch e região
+    branch: main
+    region: oregon
+
+    # Build: instalar deps e compilar TypeScript
+    buildCommand: npm install && npm run build
+
+    # Start: rodar o servidor compilado
+    startCommand: node dist/server.js
+
+    # Variáveis de ambiente (definir no Dashboard do Render - Environment)
+    # Obrigatórias: MONGODB_URI, JWT_SECRET, CORS_ORIGIN
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # PORT é definido automaticamente pelo Render. No Environment adicione:
+      # Adicione no Render: MONGODB_URI, JWT_SECRET, JWT_ACCESS_EXPIRES_IN,
+      # JWT_REFRESH_EXPIRES_IN, CORS_ORIGIN, LOG_LEVEL
+      # Opcional (upload de logo): CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET
