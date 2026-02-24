@@ -2,6 +2,8 @@
 
 Backend de um sistema SaaS multi-tenant de agendamento para barbearias. Desenvolvido com foco em segurança, escalabilidade e boas práticas de arquitetura.
 
+**API em produção:** [https://barbercmz.onrender.com](https://barbercmz.onrender.com)
+
 ## 📖 Sobre o Projeto
 
 Este é um **projeto de estudo** desenvolvido com o objetivo de expandir o portfólio e demonstrar habilidades em desenvolvimento backend com Node.js, TypeScript e arquitetura de software.
@@ -37,6 +39,13 @@ A arquitetura foi pensada para suportar crescimento gradual, desde algumas barbe
 
 ### Process Manager
 - **PM2** - Gerenciamento de processos (produção)
+
+## 🌐 Deploy
+
+A API está hospedada no **Render**:
+
+- **URL:** [https://barbercmz.onrender.com](https://barbercmz.onrender.com)
+- O frontend em produção ([Vercel](https://barbercmz-frontend.vercel.app/)) consome esta API. Configure `CORS_ORIGIN` no `.env` do Render para incluir a origem do frontend (ex.: `https://barbercmz-frontend.vercel.app`).
 
 ## 📦 Instalação
 
@@ -227,4 +236,9 @@ ISC
 ---
 
 **Desenvolvido como projeto de estudo para portfólio** | Potencial para se tornar SaaS regional
+
+### Links
+
+- **API (produção):** [https://barbercmz.onrender.com](https://barbercmz.onrender.com)
+- **Frontend (produção):** [https://barbercmz-frontend.vercel.app](https://barbercmz-frontend.vercel.app/)
 
