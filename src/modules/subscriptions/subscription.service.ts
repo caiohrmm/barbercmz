@@ -5,6 +5,13 @@ import { Plan } from '../plans/plan.model';
 import { Barber } from '../barbers/barber.model';
 import { BadRequestError, ForbiddenError, NotFoundError } from '../../utils/errors';
 
+/**
+ * Subscription status contract (backend + frontend):
+ * - trial:  trial period; when trialEndsAt < now we treat as suspended (on read).
+ * - active: paid/current period.
+ * - suspended: trial expired or payment failed — block usage, allow billing/plan.
+ * - cancelled: user cancelled — same as suspended for access.
+ */
 export type SubscriptionStatus = 'active' | 'suspended' | 'cancelled' | 'trial';
 
 /**
