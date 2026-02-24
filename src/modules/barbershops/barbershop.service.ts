@@ -237,6 +237,63 @@ export class BarbershopService {
   }
 
   /**
+   * Update barbershop name and/or slug. Slug must be unique (no other barbershop can have it).
+   */
+  async update(
+    id: string,
+    data: { name?: string; slug?: string }
+  ): Promise<BarbershopResponse> {
+    const barbershop = await Barbershop.findById(id);
+    if (!barbershop) {
+      throw new NotFoundError('Barbershop not found');
+    }
+
+    const updates: { name?: string; slug?: string } = {};
+
+    if (data.name !== undefined) {
+      updates.name = data.name.trim();
+    }
+
+    if (data.slug !== undefined) {
+      const slug = data.slug.trim().toLowerCase();
+      const existing = await Barbershop.findOne({
+        slug,
+        _id: { $ne: new mongoose.Types.ObjectId(id) },
+      });
+      if (existing) {
+        throw new ConflictError('Este endereço (slug) já está em uso por outra barbearia. Escolha outro.');
+      }
+      updates.slug = slug;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return this.findById(id);
+    }
+
+    const updated = await Barbershop.findByIdAndUpdate(
+      id,
+      updates,
+      { new: true }
+    );
+
+    if (!updated) {
+      throw new NotFoundError('Barbershop not found');
+    }
+
+    return {
+      id: updated._id.toString(),
+      name: updated.name,
+      slug: updated.slug,
+      logoUrl: updated.logoUrl,
+      planId: updated.planId?.toString(),
+      maxBarbers: updated.maxBarbers,
+      active: updated.active,
+      createdAt: updated.createdAt,
+      updatedAt: updated.updatedAt,
+    };
+  }
+
+  /**
    * List barbers for public booking (id + name only). Used to show barber choice when multiple.
    */
   async getPublicBarbers(

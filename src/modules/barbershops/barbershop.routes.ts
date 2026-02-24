@@ -11,6 +11,7 @@ import {
   getBarbershopServicesSchema,
   getPublicBarbersSchema,
   getAvailableSlotsSchema,
+  updateBarbershopSchema,
 } from './barbershop.schemas';
 
 const router = Router();
@@ -23,6 +24,18 @@ router.post('/', validate(createBarbershopSchema), (req, res) => {
 router.get('/slug/:slug', validate(getBarbershopBySlugSchema), (req, res) => {
   barbershopController.getBySlug(req, res);
 });
+
+// Update barbershop (name/slug) — owner only, own barbershop
+router.patch(
+  '/:id',
+  authenticate,
+  authorize('owner'),
+  validate(updateBarbershopSchema),
+  validateBarbershopOwner,
+  (req, res) => {
+    barbershopController.update(req as import('../../middlewares/auth.middleware').AuthRequest, res);
+  }
+);
 
 // Logo upload (owner only, own barbershop)
 router.post(

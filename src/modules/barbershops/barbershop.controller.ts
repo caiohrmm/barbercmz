@@ -126,6 +126,31 @@ export class BarbershopController {
     }
   }
 
+  async update(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const body = req.body as { name?: string; slug?: string };
+
+      const barbershop = await barbershopService.update(id, body);
+
+      res.status(200).json({
+        message: 'Barbearia atualizada',
+        barbershop,
+      });
+    } catch (error) {
+      if (error instanceof AppError) {
+        res.status(error.statusCode).json({
+          error: error.message,
+        });
+        return;
+      }
+      logger.error(error, 'Update barbershop error');
+      res.status(500).json({
+        error: 'Internal server error',
+      });
+    }
+  }
+
   async uploadLogo(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { id } = req.params;

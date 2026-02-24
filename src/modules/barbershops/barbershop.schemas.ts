@@ -62,6 +62,33 @@ export const getAvailableSlotsSchema = z.object({
   }),
 });
 
+const slugSchema = z
+  .string()
+  .min(3, 'Slug must be at least 3 characters')
+  .max(50, 'Slug must be at most 50 characters')
+  .regex(/^[a-z0-9-]+$/, 'Slug can only contain lowercase letters, numbers and hyphens');
+
+export const updateBarbershopSchema = z
+  .object({
+    body: z
+      .object({
+        name: z
+          .string()
+          .min(3, 'Name must be at least 3 characters')
+          .max(100, 'Name must be at most 100 characters')
+          .optional(),
+        slug: slugSchema.optional(),
+      })
+      .refine((data) => data.name !== undefined || data.slug !== undefined, {
+        message: 'At least one of name or slug is required',
+      }),
+    params: z.object({
+      id: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid barbershop ID'),
+    }),
+  });
+
+export type UpdateBarbershopInput = z.infer<typeof updateBarbershopSchema>['body'];
+
 export type CreateBarbershopInput = z.infer<typeof createBarbershopSchema>['body'];
 export type GetBarbershopInput = z.infer<typeof getBarbershopSchema>['params'];
 
