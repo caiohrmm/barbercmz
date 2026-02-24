@@ -1,6 +1,9 @@
 import mongoose from 'mongoose';
 import { Barbershop } from '../barbershops/barbershop.model';
 import { Subscription } from '../plans/subscription.model';
+import { Plan } from '../plans/plan.model';
+import { Barber } from '../barbers/barber.model';
+import { BadRequestError, ForbiddenError, NotFoundError } from '../../utils/errors';
 
 export type SubscriptionStatus = 'active' | 'suspended' | 'cancelled' | 'trial';
 
@@ -91,4 +94,72 @@ export async function getCurrentSubscription(
       features: plan.features ?? [],
     },
   };
+}
+
+/**
+ * Change the barbershop's plan (upgrade/downgrade without payment).
+ * Only owner may call. On downgrade, barbersActiveCount must be <= newPlan.maxBarbers.
+ * Updates subscription.planId and barbershop.planId + barbershop.maxBarbers.
+ */
+export async function changePlan(
+  barbershopId: string,
+  planId: string,
+  isOwner: boolean
+): Promise<SubscriptionMeResponse | null> {
+  if (!isOwner) {
+    throw new ForbiddenError('Apenas o dono da barbearia pode alterar o plano.');
+  }
+
+  const barbershop = await Barbershop.findById(barbershopId);
+  if (!barbershop) {
+    throw new NotFoundError('Barbearia não encontrada.');
+  }
+
+  const subscriptionId = barbershop.currentSubscriptionId;
+  if (!subscriptionId) {
+    throw new BadRequestError('Sua barbearia não possui assinatura. Escolha um plano no cadastro.');
+  }
+
+  const newPlan = await Plan.findById(planId);
+  if (!newPlan || !newPlan.active) {
+    throw new BadRequestError('Plano inválido ou inativo.');
+  }
+
+  const subscription = await Subscription.findById(subscriptionId)
+    .populate('planId')
+    .lean()
+    .exec();
+  if (!subscription) {
+    throw new NotFoundError('Assinatura não encontrada.');
+  }
+
+  const currentPlan = subscription.planId as unknown as { maxBarbers: number } | null;
+  const currentMaxBarbers = currentPlan?.maxBarbers ?? 1;
+
+  if (newPlan.maxBarbers < currentMaxBarbers) {
+    const barbershopObjectId = new mongoose.Types.ObjectId(barbershopId);
+    const activeCount = await Barber.countDocuments({
+      barbershopId: barbershopObjectId,
+      active: true,
+    });
+    if (activeCount > newPlan.maxBarbers) {
+      throw new BadRequestError(
+        `Reduza o número de barbeiros ativos antes de trocar para este plano. Você tem ${activeCount} barbeiro(s) ativo(s) e o plano "${newPlan.name}" permite até ${newPlan.maxBarbers}. Desative ou remova ${activeCount - newPlan.maxBarbers} barbeiro(s).`
+      );
+    }
+  }
+
+  const newPlanObjectId = new mongoose.Types.ObjectId(planId);
+
+  await Subscription.updateOne(
+    { _id: subscriptionId },
+    { $set: { planId: newPlanObjectId } }
+  );
+
+  await Barbershop.updateOne(
+    { _id: barbershopId },
+    { $set: { planId: newPlanObjectId, maxBarbers: newPlan.maxBarbers } }
+  );
+
+  return getCurrentSubscription(barbershopId);
 }
