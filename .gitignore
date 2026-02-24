@@ -12,6 +12,8 @@ dist/
 .env.local
 .env.*.local
 
+/docs/
+
 # Logs
 logs/
 *.log
