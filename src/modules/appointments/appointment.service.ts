@@ -11,9 +11,27 @@ import logger from '../../utils/logger';
 const CODE_EXPIRY_MINUTES = 10;
 const MAX_PENDING_PER_PHONE_PER_WINDOW = 3;
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 min
+/** Agendamento só pode ser hoje ou até 20 dias no futuro. */
+const MAX_APPOINTMENT_DAYS_AHEAD = 20;
 
 function generateCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+function validateAppointmentDateRange(startTime: Date): void {
+  const start = new Date(startTime);
+  const now = new Date();
+  if (start < now) {
+    throw new BadRequestError('Não é possível agendar em data/hora passada.');
+  }
+  const maxAllowed = new Date(now);
+  maxAllowed.setUTCDate(maxAllowed.getUTCDate() + MAX_APPOINTMENT_DAYS_AHEAD);
+  maxAllowed.setUTCHours(23, 59, 59, 999);
+  if (start > maxAllowed) {
+    throw new BadRequestError(
+      `Agendamento só pode ser feito até ${MAX_APPOINTMENT_DAYS_AHEAD} dias à frente.`
+    );
+  }
 }
 
 export interface CreateAppointmentData {
@@ -94,6 +112,7 @@ export class AppointmentService {
       );
     }
 
+    validateAppointmentDateRange(data.startTime);
     const startTime = new Date(data.startTime);
     const expiresAt = new Date(Date.now() + CODE_EXPIRY_MINUTES * 60 * 1000);
     const code = generateCode();
@@ -163,6 +182,8 @@ export class AppointmentService {
   }
 
   async create(data: CreateAppointmentData): Promise<AppointmentResponse> {
+    validateAppointmentDateRange(data.startTime);
+
     // Verify barbershop exists and is active
     const barbershop = await Barbershop.findById(data.barbershopId);
     if (!barbershop || !barbershop.active) {
@@ -338,9 +359,9 @@ export class AppointmentService {
       .lean();
 
     return appointments.map((apt) => {
-      const barber = apt.barberId as { _id: { toString: () => string }; name: string } | null;
-      const service = apt.serviceId as { _id: { toString: () => string }; name: string; duration: number; price: number } | null;
-      const customer = apt.customerId as { _id: { toString: () => string }; name: string; phone: string } | null;
+      const barber = apt.barberId as unknown as { _id: { toString: () => string }; name: string } | null;
+      const service = apt.serviceId as unknown as { _id: { toString: () => string }; name: string; duration: number; price: number } | null;
+      const customer = apt.customerId as unknown as { _id: { toString: () => string }; name: string; phone: string } | null;
 
       const barberIdStr = barber?._id ? barber._id.toString() : String(apt.barberId);
       const serviceIdStr = service?._id ? service._id.toString() : String(apt.serviceId);

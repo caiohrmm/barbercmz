@@ -16,6 +16,9 @@ const SLOT_STEP_MINUTES = 30;
 /** Dias grátis de demonstração para novas barbearias com plano. */
 const TRIAL_DAYS = 30;
 
+/** Agendamento só pode ser hoje ou até 20 dias no futuro (alinhado ao appointment.service). */
+const MAX_APPOINTMENT_DAYS_AHEAD = 20;
+
 function timeToMinutes(timeStr: string): number {
   const [h, m] = timeStr.split(':').map(Number);
   return h * 60 + m;
@@ -278,6 +281,20 @@ export class BarbershopService {
     }
 
     const [y, m, d] = dateStr.split('-').map(Number);
+    const requestDateUtc = new Date(Date.UTC(y, m - 1, d));
+    const now = new Date();
+    const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const maxDate = new Date(todayStart);
+    maxDate.setUTCDate(maxDate.getUTCDate() + MAX_APPOINTMENT_DAYS_AHEAD);
+    if (requestDateUtc < todayStart) {
+      throw new BadRequestError('Não é possível agendar em data passada.');
+    }
+    if (requestDateUtc > maxDate) {
+      throw new BadRequestError(
+        `Agendamento só pode ser feito até ${MAX_APPOINTMENT_DAYS_AHEAD} dias à frente.`
+      );
+    }
+
     const dateObj = new Date(y, m - 1, d);
     const dayOfWeek = dateObj.getDay();
 

@@ -7,7 +7,7 @@ type EnvWithTwilio = typeof env & {
   TWILIO_PHONE_NUMBER?: string;
 };
 
-const envTwilio = process.env as EnvWithTwilio;
+const envTwilio = process.env as unknown as EnvWithTwilio;
 
 /**
  * Sends an SMS with the verification code.
