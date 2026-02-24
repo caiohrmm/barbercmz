@@ -47,6 +47,7 @@ import barberRoutes from './modules/barbers/barber.routes';
 import serviceRoutes from './modules/services/service.routes';
 import appointmentRoutes from './modules/appointments/appointment.routes';
 import customerRoutes from './modules/customers/customer.routes';
+import subscriptionRoutes from './modules/subscriptions/subscription.routes';
 
 app.use('/auth', authRoutes);
 app.use('/barbershops', barbershopRoutes);
@@ -55,6 +56,7 @@ app.use('/barbers', barberRoutes);
 app.use('/services', serviceRoutes);
 app.use('/appointments', appointmentRoutes);
 app.use('/customers', customerRoutes);
+app.use('/subscriptions', subscriptionRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {
