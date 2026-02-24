@@ -5,6 +5,7 @@ import { Subscription } from '../modules/plans/subscription.model';
 import { Plan } from '../modules/plans/plan.model';
 import { Barber } from '../modules/barbers/barber.model';
 import { AuthRequest } from './auth.middleware';
+import { refreshTrialExpiry } from '../modules/subscriptions/subscription.service';
 
 const ACTIVE_SUBSCRIPTION_STATUSES = ['active', 'trial'] as const;
 
@@ -38,6 +39,7 @@ export const checkBarberLimit = (
 
       const subscriptionId = barbershop.currentSubscriptionId;
       if (subscriptionId) {
+        await refreshTrialExpiry(subscriptionId as mongoose.Types.ObjectId);
         const subscription = await Subscription.findById(subscriptionId)
           .lean()
           .exec();

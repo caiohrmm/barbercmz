@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { barberController } from './barber.controller';
 import { validate } from '../../middlewares/validate.middleware';
 import { authenticate, authorize } from '../../middlewares/auth.middleware';
+import { requireActiveSubscription } from '../../middlewares/requireActiveSubscription.middleware';
 import { checkBarberLimit } from '../../middlewares/checkBarberLimit.middleware';
 import {
   createBarberSchema,
@@ -17,6 +18,9 @@ router.use(authenticate);
 
 // All routes require owner or barber role
 router.use(authorize('owner', 'barber'));
+
+// All routes require active subscription (trial or active; trial expiry enforced on read)
+router.use(requireActiveSubscription);
 
 router.post('/', checkBarberLimit, validate(createBarberSchema), (req, res) => {
   barberController.create(req, res);

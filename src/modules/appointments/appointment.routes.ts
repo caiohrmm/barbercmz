@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { appointmentController } from './appointment.controller';
 import { validate } from '../../middlewares/validate.middleware';
 import { authenticate, authorize } from '../../middlewares/auth.middleware';
+import { requireActiveSubscription } from '../../middlewares/requireActiveSubscription.middleware';
 import { appointmentRateLimit } from '../../config/security';
 import {
   createAppointmentWithCaptchaSchema,
@@ -43,11 +44,12 @@ router.post(
   }
 );
 
-// Authenticated routes
+// Authenticated routes (require active subscription)
 router.get(
   '/',
   authenticate,
   authorize('owner', 'barber'),
+  requireActiveSubscription,
   validate(getAppointmentsSchema),
   (req, res) => {
     appointmentController.findAll(req, res);
@@ -58,6 +60,7 @@ router.patch(
   '/:id/status',
   authenticate,
   authorize('owner', 'barber'),
+  requireActiveSubscription,
   validate(updateAppointmentStatusSchema),
   (req, res) => {
     appointmentController.updateStatus(req, res);

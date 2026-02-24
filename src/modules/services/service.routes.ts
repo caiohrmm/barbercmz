@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { serviceController } from './service.controller';
 import { validate } from '../../middlewares/validate.middleware';
 import { authenticate, authorize } from '../../middlewares/auth.middleware';
+import { requireActiveSubscription } from '../../middlewares/requireActiveSubscription.middleware';
 import {
   createServiceSchema,
   getServicesSchema,
@@ -16,6 +17,8 @@ router.use(authenticate);
 
 // All routes require owner or barber role
 router.use(authorize('owner', 'barber'));
+
+router.use(requireActiveSubscription);
 
 router.post('/', validate(createServiceSchema), (req, res) => {
   serviceController.create(req, res);
