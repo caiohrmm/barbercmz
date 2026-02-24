@@ -1,5 +1,6 @@
 import logger from '../utils/logger';
 import env from '../config/env';
+import { ServiceUnavailableError } from '../utils/errors';
 
 type EnvWithTwilio = typeof env & {
   TWILIO_ACCOUNT_SID?: string;
@@ -8,6 +9,9 @@ type EnvWithTwilio = typeof env & {
 };
 
 const envTwilio = process.env as unknown as EnvWithTwilio;
+
+/** Twilio error 21659: From number is not a Twilio number (must buy/rent in Twilio console). */
+const TWILIO_CODE_INVALID_FROM = 21659;
 
 /**
  * Sends an SMS with the verification code.
@@ -33,8 +37,14 @@ export async function sendVerificationSms(phone: string, code: string): Promise<
         from: envTwilio.TWILIO_PHONE_NUMBER,
       });
       logger.info({ to: phone.replace(/\d(?=\d{4})/g, '*') }, 'SMS verification sent');
-    } catch (err) {
+    } catch (err: unknown) {
       logger.error({ err, to: phone }, 'Failed to send SMS');
+      const twilioCode = (err as { code?: number })?.code;
+      if (twilioCode === TWILIO_CODE_INVALID_FROM) {
+        throw new ServiceUnavailableError(
+          'SMS temporariamente indisponível. O número de envio (From) deve ser um número comprado no console da Twilio, não um número pessoal. Veja: https://www.twilio.com/docs/errors/21659'
+        );
+      }
       throw err;
     }
   } else {
