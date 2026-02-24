@@ -246,7 +246,9 @@ export class AppointmentService {
     });
 
     if (activeAppointmentsCount >= 2) {
-      throw new BadRequestError('Customer already has 2 active appointments. Maximum limit reached.');
+      throw new BadRequestError(
+        'Você já possui 2 agendamentos em aberto. Cancele ou aguarde um deles para agendar outro.'
+      );
     }
 
     // Calculate endTime based on service duration

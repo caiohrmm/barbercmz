@@ -3,6 +3,7 @@ import { appointmentService } from './appointment.service';
 import { AppError } from '../../utils/errors';
 import logger from '../../utils/logger';
 import { AuthRequest } from '../../middlewares/auth.middleware';
+import { verifyRecaptcha } from '../../services/recaptcha.service';
 
 export class AppointmentController {
   async requestVerification(req: AuthRequest | any, res: Response): Promise<void> {
@@ -64,13 +65,16 @@ export class AppointmentController {
 
   async create(req: AuthRequest | any, res: Response): Promise<void> {
     try {
+      const { captchaToken, ...rest } = req.body;
+      await verifyRecaptcha(captchaToken);
+
       const data = {
-        barbershopId: req.body.barbershopId,
-        barberId: req.body.barberId,
-        serviceId: req.body.serviceId,
-        customerName: req.body.customerName,
-        customerPhone: req.body.customerPhone,
-        startTime: new Date(req.body.startTime),
+        barbershopId: rest.barbershopId,
+        barberId: rest.barberId,
+        serviceId: rest.serviceId,
+        customerName: rest.customerName,
+        customerPhone: rest.customerPhone,
+        startTime: new Date(rest.startTime),
       };
 
       const appointment = await appointmentService.create(data);

@@ -4,7 +4,7 @@ import { validate } from '../../middlewares/validate.middleware';
 import { authenticate, authorize } from '../../middlewares/auth.middleware';
 import { appointmentRateLimit } from '../../config/security';
 import {
-  createAppointmentSchema,
+  createAppointmentWithCaptchaSchema,
   requestVerificationSchema,
   verifyAppointmentSchema,
   getAppointmentsSchema,
@@ -33,11 +33,11 @@ router.post(
   }
 );
 
-// Legacy public route (direct create without SMS) - can be removed if only SMS flow is desired
+// Public: create appointment (requires captcha). SMS flow (request-verification + verify) kept inactive for future use.
 router.post(
   '/',
   appointmentRateLimit,
-  validate(createAppointmentSchema),
+  validate(createAppointmentWithCaptchaSchema),
   (req, res) => {
     appointmentController.create(req, res);
   }

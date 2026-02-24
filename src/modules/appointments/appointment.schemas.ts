@@ -11,6 +11,13 @@ export const createAppointmentSchema = z.object({
   }),
 });
 
+/** Schema para criação pública de agendamento (exige captcha). */
+export const createAppointmentWithCaptchaSchema = z.object({
+  body: createAppointmentSchema.shape.body.extend({
+    captchaToken: z.string().min(1, 'Captcha é obrigatório'),
+  }),
+});
+
 export const getAppointmentsSchema = z.object({
   query: z.object({
     status: z.enum(['scheduled', 'completed', 'cancelled', 'no_show']).optional(),
