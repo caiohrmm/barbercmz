@@ -5,6 +5,7 @@ import { authenticate, authorize } from '../../middlewares/auth.middleware';
 import { requireActiveSubscription } from '../../middlewares/requireActiveSubscription.middleware';
 import { appointmentRateLimit } from '../../config/security';
 import {
+  createAppointmentSchema,
   createAppointmentWithCaptchaSchema,
   requestVerificationSchema,
   verifyAppointmentSchema,
@@ -41,6 +42,18 @@ router.post(
   validate(createAppointmentWithCaptchaSchema),
   (req, res) => {
     appointmentController.create(req, res);
+  }
+);
+
+// Internal: create appointment from dashboard (no captcha, auth required)
+router.post(
+  '/internal',
+  authenticate,
+  authorize('owner', 'barber'),
+  requireActiveSubscription,
+  validate(createAppointmentSchema),
+  (req, res) => {
+    appointmentController.createInternal(req, res);
   }
 );
 

@@ -98,6 +98,38 @@ export class AppointmentController {
     }
   }
 
+  async createInternal(req: AuthRequest | any, res: Response): Promise<void> {
+    try {
+      const data = {
+        barbershopId: req.body.barbershopId,
+        barberId: req.body.barberId,
+        serviceId: req.body.serviceId,
+        customerName: req.body.customerName,
+        customerPhone: req.body.customerPhone,
+        startTime: new Date(req.body.startTime),
+      };
+
+      const appointment = await appointmentService.create(data);
+
+      res.status(201).json({
+        message: 'Appointment created successfully',
+        appointment,
+      });
+    } catch (error) {
+      if (error instanceof AppError) {
+        res.status(error.statusCode).json({
+          error: error.message,
+        });
+        return;
+      }
+
+      logger.error(error, 'Create internal appointment error');
+      res.status(500).json({
+        error: 'Internal server error',
+      });
+    }
+  }
+
   async findAll(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.barbershopId) {
